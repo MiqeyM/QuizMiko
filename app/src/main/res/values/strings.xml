@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">QuizMiko</string>
+    <string name="state_idle">Idle</string>
+    <string name="advertise_button">Start advertising</string>
+    <string name="state_explainer_text">State:</string>
+    <string name="discover_button">Start discovering</string>
+    <string name="device_name">Default device name</string>
+</resources>

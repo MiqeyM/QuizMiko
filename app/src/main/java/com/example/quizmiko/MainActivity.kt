@@ -13,11 +13,15 @@ import android.Manifest.permission.BLUETOOTH_ADMIN
 import android.content.Context
 import android.provider.Settings
 import android.widget.Toast
+import androidx.databinding.DataBindingUtil
+import com.example.quizmiko.databinding.ActivityMainBinding
 import com.google.android.gms.nearby.connection.*
 import com.google.android.gms.nearby.connection.Strategy.P2P_STAR
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate
 import com.google.android.gms.nearby.connection.Payload
 import com.google.android.gms.nearby.connection.PayloadCallback
+import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -34,7 +38,9 @@ class MainActivity : AppCompatActivity() {
 
         private val STRATEGY = P2P_STAR
 
-        private val deviceId: String = Settings.Secure.ANDROID_ID
+       // private val deviceId: String = Settings.Secure.ANDROID_ID
+
+        private val deviceId = UUID.randomUUID().toString().take(4)
 
         private val advOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
 
@@ -51,7 +57,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         connClient = Nearby.getConnectionsClient(this)
-        //val binding =
+        val binding: ActivityMainBinding =
+            DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.stateTextView.text = getString(R.string.state_idle)
+        binding.deviceName.text = deviceId
+        val startButton = binding.advertButton
+        val joinButton = binding.discButton
+
+        startButton.setOnClickListener {
+            startServer()
+            joinButton.isEnabled = false
+        }
+
+        joinButton.setOnClickListener { startClient()
+        startButton.isEnabled = false}
 
 
     }
@@ -98,6 +117,7 @@ class MainActivity : AppCompatActivity() {
                 "Advertising started",
                 Toast.LENGTH_SHORT
             ).show()
+            currentStateTextView.text = "advertising"
         }.addOnFailureListener { exception ->
             Toast.makeText(
                 applicationContext,
@@ -116,6 +136,8 @@ class MainActivity : AppCompatActivity() {
                     "Discovering started",
                     Toast.LENGTH_SHORT
                 ).show()
+                currentStateTextView.text = "discovering"
+
             }.addOnFailureListener { exception ->
                 Toast.makeText(
                     applicationContext,

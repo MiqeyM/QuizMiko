@@ -9,7 +9,7 @@
         tools:context=".MainActivity">
 
         <TextView
-            android:id="@+id/connStateTextView"
+            android:id="@+id/currentStateTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -29,10 +29,10 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp"
             android:text="@string/advertise_button"
-            app:layout_constraintBottom_toTopOf="@+id/button2"
-            app:layout_constraintEnd_toEndOf="@+id/connStateTextView"
-            app:layout_constraintStart_toStartOf="@+id/connStateTextView"
-            app:layout_constraintTop_toBottomOf="@+id/connStateTextView" />
+            app:layout_constraintBottom_toTopOf="@+id/discButton"
+            app:layout_constraintEnd_toEndOf="@+id/currentStateTextView"
+            app:layout_constraintStart_toStartOf="@+id/currentStateTextView"
+            app:layout_constraintTop_toBottomOf="@+id/currentStateTextView" />
 
         <TextView
             android:id="@+id/stateTextView"
@@ -42,13 +42,13 @@
             android:layout_marginBottom="8dp"
             android:text="@string/state_explainer_text"
             android:textAppearance="@style/TextAppearance.AppCompat.Small"
-            app:layout_constraintBottom_toTopOf="@+id/connStateTextView"
-            app:layout_constraintEnd_toEndOf="@+id/connStateTextView"
-            app:layout_constraintStart_toStartOf="@+id/connStateTextView"
+            app:layout_constraintBottom_toTopOf="@+id/currentStateTextView"
+            app:layout_constraintEnd_toEndOf="@+id/currentStateTextView"
+            app:layout_constraintStart_toStartOf="@+id/currentStateTextView"
             app:layout_constraintTop_toBottomOf="@id/deviceName" />
 
         <Button
-            android:id="@+id/button2"
+            android:id="@+id/discButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -67,8 +67,8 @@
             android:textAppearance="@style/TextAppearance.AppCompat.Large"
             android:textColor="#E91E63"
             app:layout_constraintBottom_toTopOf="@+id/stateTextView"
-            app:layout_constraintEnd_toEndOf="@+id/connStateTextView"
-            app:layout_constraintStart_toStartOf="@+id/connStateTextView"
+            app:layout_constraintEnd_toEndOf="@+id/currentStateTextView"
+            app:layout_constraintStart_toStartOf="@+id/currentStateTextView"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_chainStyle="packed" />
     </androidx.constraintlayout.widget.ConstraintLayout>

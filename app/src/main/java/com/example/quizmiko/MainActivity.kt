@@ -11,7 +11,6 @@ import android.Manifest.permission.CHANGE_WIFI_STATE
 import android.Manifest.permission.ACCESS_WIFI_STATE
 import android.Manifest.permission.BLUETOOTH_ADMIN
 import android.content.Context
-import android.provider.Settings
 import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import com.example.quizmiko.databinding.ActivityMainBinding
@@ -22,6 +21,7 @@ import com.google.android.gms.nearby.connection.Payload
 import com.google.android.gms.nearby.connection.PayloadCallback
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
+import kotlin.random.Random
 
 
 class MainActivity : AppCompatActivity() {
@@ -34,13 +34,12 @@ class MainActivity : AppCompatActivity() {
             CHANGE_WIFI_STATE,
             ACCESS_COARSE_LOCATION
         )
-        private val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
+        private const val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
 
         private val STRATEGY = P2P_STAR
 
-       // private val deviceId: String = Settings.Secure.ANDROID_ID
 
-        private val deviceId = UUID.randomUUID().toString().take(4)
+        private val deviceId = "Player " + Random.nextInt(1, 10)
 
         private val advOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
 
@@ -51,26 +50,35 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var connClient: ConnectionsClient
 
-    private lateinit var context: Context
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         connClient = Nearby.getConnectionsClient(this)
         val binding: ActivityMainBinding =
             DataBindingUtil.setContentView(this, R.layout.activity_main)
-        binding.stateTextView.text = getString(R.string.state_idle)
+        binding.currentStateTextView.text = getString(R.string.state_idle)
         binding.deviceName.text = deviceId
-        val startButton = binding.advertButton
-        val joinButton = binding.discButton
 
-        startButton.setOnClickListener {
+
+        advertButton.setOnClickListener {
             startServer()
-            joinButton.isEnabled = false
+            //joinButton.isEnabled = false
         }
 
-        joinButton.setOnClickListener { startClient()
-        startButton.isEnabled = false}
+
+        discButton.setOnClickListener {
+            startClient()
+            //startButton.isEnabled = false
+        }
+
+        disconnectButton.setOnClickListener {
+            connClient.apply {
+                stopAdvertising()
+                stopDiscovery()
+                stopAllEndpoints()
+            }
+            currentStateTextView.text = "Idle"
+        }
 
 
     }
@@ -147,6 +155,35 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
+        override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
+            currentStateTextView.text = "Endpoint found - $endpointId"
+            connClient.requestConnection(deviceId, endpointId, connectionLifecycleCallback)
+                .addOnSuccessListener {
+                    Toast.makeText(
+                        applicationContext,
+                        "Requested connection to $endpointId !",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    currentStateTextView.text = "Found : $endpointId"
+                }
+                .addOnFailureListener {
+                    Toast.makeText(
+                        applicationContext,
+                        "Connection request to $endpointId failed!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+        }
+
+        override fun onEndpointLost(endpointId: String) {
+            Toast.makeText(applicationContext, "Endpoint: $endpointId lost!", Toast.LENGTH_SHORT)
+                .show()
+        }
+
+    }
+
+
     private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
         override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
             when (result.status.statusCode) {
@@ -155,6 +192,7 @@ class MainActivity : AppCompatActivity() {
                     "Connected to $endpointId successfully",
                     Toast.LENGTH_SHORT
                 ).show()
+
                 ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> Toast.makeText(
                     applicationContext,
                     "Connection attempt to $endpointId was rejected",
@@ -179,7 +217,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun onConnectionInitiated(p0: String, p1: ConnectionInfo) {
 
-            Toast.makeText(this@MainActivity, "Connection with $p0 initiated.", Toast.LENGTH_SHORT)
+            Toast.makeText(applicationContext, "Connection with $p0 initiated.", Toast.LENGTH_SHORT)
                 .show()
             connClient.acceptConnection(p0, payloadCallback)
         }
@@ -195,30 +233,5 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
-        override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
-            connClient.requestConnection(deviceId, endpointId, connectionLifecycleCallback)
-                .addOnSuccessListener {
-                    Toast.makeText(
-                        applicationContext,
-                        "Requested connection to $endpointId !",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                .addOnFailureListener {
-                    Toast.makeText(
-                        applicationContext,
-                        "Connection request to $endpointId failed!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-        }
-
-        override fun onEndpointLost(endpointId: String) {
-            Toast.makeText(applicationContext, "Endpoint: $endpointId lost!", Toast.LENGTH_SHORT)
-                .show()
-        }
-
-    }
 
 }

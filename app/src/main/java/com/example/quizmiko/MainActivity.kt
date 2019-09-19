@@ -11,6 +11,7 @@ import android.Manifest.permission.CHANGE_WIFI_STATE
 import android.Manifest.permission.ACCESS_WIFI_STATE
 import android.Manifest.permission.BLUETOOTH_ADMIN
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import com.example.quizmiko.databinding.ActivityMainBinding
@@ -38,6 +39,9 @@ class MainActivity : AppCompatActivity() {
 
         private val STRATEGY = P2P_STAR
 
+        private const val LOG_TAG = "MikoQuiz"
+
+        private const val packgName = "com.example.quizmiko"
 
         private val deviceId = "Player " + Random.nextInt(1, 10)
 
@@ -116,22 +120,14 @@ class MainActivity : AppCompatActivity() {
 
         connClient.startAdvertising(
             deviceId,
-            packageName,
+            packgName,
             connectionLifecycleCallback,
             advOptions
         ).addOnSuccessListener {
-            Toast.makeText(
-                applicationContext,
-                "Advertising started",
-                Toast.LENGTH_SHORT
-            ).show()
+            Log.i(LOG_TAG, "$deviceId started advertising.")
             currentStateTextView.text = "advertising"
         }.addOnFailureListener { exception ->
-            Toast.makeText(
-                applicationContext,
-                "Advertising failed, exception thrown: ${exception.message}.",
-                Toast.LENGTH_SHORT
-            ).show()
+            Log.i(LOG_TAG, "$deviceId failed to advertise.")
         }
 
     }
@@ -139,25 +135,15 @@ class MainActivity : AppCompatActivity() {
     private fun startClient() {
         connClient.startDiscovery(deviceId, endpointDiscoveryCallback, discOptions)
             .addOnSuccessListener {
-                Toast.makeText(
-                    applicationContext,
-                    "Discovering started",
-                    Toast.LENGTH_SHORT
-                ).show()
                 currentStateTextView.text = "discovering"
-
-            }.addOnFailureListener { exception ->
-                Toast.makeText(
-                    applicationContext,
-                    "Discovery failed, exception thrown: ${exception.message}.",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Log.i(LOG_TAG, "$deviceId started discovering.")
+            }.addOnFailureListener { e ->
+                Log.i("MikoQuiz", "$e")
             }
     }
 
     private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
         override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
-            currentStateTextView.text = "Endpoint found - $endpointId"
             connClient.requestConnection(deviceId, endpointId, connectionLifecycleCallback)
                 .addOnSuccessListener {
                     Toast.makeText(

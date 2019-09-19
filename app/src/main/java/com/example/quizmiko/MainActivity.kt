@@ -45,9 +45,9 @@ class MainActivity : AppCompatActivity() {
 
         private val deviceId = "Player " + Random.nextInt(1, 10)
 
-        private val advOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
+        private lateinit var advOptions : AdvertisingOptions
 
-        private val discOptions = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
+        private lateinit var discOptions : DiscoveryOptions
 
 
     }
@@ -62,6 +62,8 @@ class MainActivity : AppCompatActivity() {
             DataBindingUtil.setContentView(this, R.layout.activity_main)
         binding.currentStateTextView.text = getString(R.string.state_idle)
         binding.deviceName.text = deviceId
+        advOptions = AdvertisingOptions.Builder().setStrategy(STRATEGY).build()
+        discOptions = DiscoveryOptions.Builder().setStrategy(STRATEGY).build()
 
 
         advertButton.setOnClickListener {
@@ -121,7 +123,51 @@ class MainActivity : AppCompatActivity() {
         connClient.startAdvertising(
             deviceId,
             packgName,
-            connectionLifecycleCallback,
+            object : ConnectionLifecycleCallback() {
+                override fun onConnectionResult(
+                    endpointId: String,
+                    result: ConnectionResolution
+                ) {
+                    when (result.status.statusCode) {
+                        ConnectionsStatusCodes.STATUS_OK -> Log.i(
+                            LOG_TAG,
+                            "Connection to $endpointId was successful"
+                        )
+
+                        ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> Log.i(
+                            LOG_TAG,
+                            "Connection attempt to $endpointId was rejected"
+                        )
+                        ConnectionsStatusCodes.STATUS_ERROR -> Log.i(
+                            LOG_TAG,
+                            "Connection to $endpointId failed"
+                        )
+                        else -> Log.i(
+                            LOG_TAG,
+                            "Unknown status code"
+                        )
+                    }
+                }
+
+                override fun onDisconnected(endpointId: String) {
+                    Log.d(
+                        LOG_TAG,
+                        "Disconnected from: $endpointId."
+                    )
+                }
+
+                override fun onConnectionInitiated(p0: String, p1: ConnectionInfo) {
+                    connClient.acceptConnection(p0, object : PayloadCallback() {
+                        override fun onPayloadReceived(p0: String, p1: Payload) {
+                            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                        }
+
+                        override fun onPayloadTransferUpdate(p0: String, p1: PayloadTransferUpdate) {
+                            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                        }
+                    })
+                }
+            },
             advOptions
         ).addOnSuccessListener {
             Log.i(LOG_TAG, "$deviceId started advertising.")
@@ -133,81 +179,88 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startClient() {
-        connClient.startDiscovery(deviceId, endpointDiscoveryCallback, discOptions)
+        connClient.startDiscovery(deviceId, object : EndpointDiscoveryCallback() {
+            override fun onEndpointFound(endpointId: String, p1: DiscoveredEndpointInfo) {
+                Log.d(
+                    LOG_TAG,
+                    "Endpoint found: $endpointId"
+                )
+                connClient.requestConnection(
+                    deviceId,
+                    endpointId,
+                    object : ConnectionLifecycleCallback() {
+                        override fun onConnectionResult(
+                            endpointId: String,
+                            result: ConnectionResolution
+                        ) {
+                            when (result.status.statusCode) {
+                                ConnectionsStatusCodes.STATUS_OK -> Log.i(
+                                    LOG_TAG,
+                                    "Connection to $endpointId was successful"
+                                )
+
+                                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> Log.i(
+                                    LOG_TAG,
+                                    "Connection attempt to $endpointId was rejected"
+                                )
+                                ConnectionsStatusCodes.STATUS_ERROR -> Log.i(
+                                    LOG_TAG,
+                                    "Connection to $endpointId failed"
+                                )
+                                else -> Log.i(
+                                    LOG_TAG,
+                                    "Unknown status code"
+                                )
+                            }
+                        }
+
+                        override fun onDisconnected(endpointId: String) {
+                            Log.d(
+                                LOG_TAG,
+                                "Disconnected from: $endpointId."
+                            )
+                        }
+
+                        override fun onConnectionInitiated(p0: String, p1: ConnectionInfo) {
+                            connClient.acceptConnection(p0, object : PayloadCallback() {
+                                override fun onPayloadReceived(p0: String, p1: Payload) {
+                                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                                }
+
+                                override fun onPayloadTransferUpdate(p0: String, p1: PayloadTransferUpdate) {
+                                    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                                }
+                            })
+                        }
+                    })
+                    .addOnSuccessListener {
+                        Log.d(
+                            LOG_TAG,
+                            "Connection to $deviceId accepted."
+                        )
+                    }.addOnFailureListener { e ->
+                        Log.d(
+                            LOG_TAG,
+                            "Connection to $deviceId failed. $e "
+                        )
+                    }
+            }
+
+            override fun onEndpointLost(p0: String) {
+                Log.d(
+                    LOG_TAG,
+                    "Connection to $deviceId, was lost."
+                )
+            }
+        }, discOptions)
             .addOnSuccessListener {
                 currentStateTextView.text = "discovering"
                 Log.i(LOG_TAG, "$deviceId started discovering.")
             }.addOnFailureListener { e ->
-                Log.i("MikoQuiz", "$e")
+                Log.i(LOG_TAG, "$e")
             }
     }
 
-    private val endpointDiscoveryCallback = object : EndpointDiscoveryCallback() {
-        override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {
-            connClient.requestConnection(deviceId, endpointId, connectionLifecycleCallback)
-                .addOnSuccessListener {
-                    Toast.makeText(
-                        applicationContext,
-                        "Requested connection to $endpointId !",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    currentStateTextView.text = "Found : $endpointId"
-                }
-                .addOnFailureListener {
-                    Toast.makeText(
-                        applicationContext,
-                        "Connection request to $endpointId failed!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-        }
-
-        override fun onEndpointLost(endpointId: String) {
-            Toast.makeText(applicationContext, "Endpoint: $endpointId lost!", Toast.LENGTH_SHORT)
-                .show()
-        }
-
-    }
-
-
-    private val connectionLifecycleCallback = object : ConnectionLifecycleCallback() {
-        override fun onConnectionResult(endpointId: String, result: ConnectionResolution) {
-            when (result.status.statusCode) {
-                ConnectionsStatusCodes.STATUS_OK -> Toast.makeText(
-                    applicationContext,
-                    "Connected to $endpointId successfully",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED -> Toast.makeText(
-                    applicationContext,
-                    "Connection attempt to $endpointId was rejected",
-                    Toast.LENGTH_SHORT
-                ).show()
-                ConnectionsStatusCodes.STATUS_ERROR -> Toast.makeText(
-                    applicationContext,
-                    "Connected attempt to $endpointId failed",
-                    Toast.LENGTH_SHORT
-                ).show()
-                else -> Toast.makeText(
-                    applicationContext,
-                    "Unknown status code",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        override fun onDisconnected(p0: String) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-        override fun onConnectionInitiated(p0: String, p1: ConnectionInfo) {
-
-            Toast.makeText(applicationContext, "Connection with $p0 initiated.", Toast.LENGTH_SHORT)
-                .show()
-            connClient.acceptConnection(p0, payloadCallback)
-        }
-    }
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(p0: String, p1: Payload) {
